@@ -6,20 +6,20 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <h1 class="h4 mb-1">Polaris Connect Records</h1>
-            <p class="text-muted mb-0">Switch templates to browse, search, export, and execute template-specific actions.</p>
+            <h1 class="h4 mb-1">Polaris Connect ??????</h1>
+            <p class="text-muted mb-0">??????????????????????? API ????????</p>
           </div>
           <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" id="auto-refresh-toggle" type="button">Auto Refresh</button>
+            <button class="btn btn-outline-secondary" id="auto-refresh-toggle" type="button">????</button>
             {% if selected_template %}
-            <a class="btn btn-outline-primary" download="{{ selected_template.api_name }}.csv" href="/api/v1/records/export.csv?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">Export CSV</a>
-            <a class="btn btn-primary" download="{{ selected_template.api_name }}.json" href="/api/v1/records/export.json?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">Export JSON</a>
+            <a class="btn btn-outline-primary" download="{{ selected_template.api_name }}.csv" href="/api/v1/records/export.csv?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">CSV??</a>
+            <a class="btn btn-primary" download="{{ selected_template.api_name }}.json" href="/api/v1/records/export.json?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">JSON??</a>
             {% endif %}
           </div>
         </div>
         <form method="get" class="row g-3">
           <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">Template</label>
+            <label class="form-label">??????</label>
             <select class="form-control" name="template_name" onchange="this.form.submit()">
               {% for template in available_templates %}
               <option value="{{ template.template_name }}" {% if selected_template and template.template_name == selected_template.template_name %}selected{% endif %}>{{ template.template_name }}</option>
@@ -33,20 +33,20 @@
           </div>
           {% endfor %}
           <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">Keyword</label>
+            <label class="form-label">?????</label>
             <input class="form-control" type="text" name="keyword" value="{{ filters.keyword }}">
           </div>
           <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">Received From</label>
+            <label class="form-label">????From</label>
             <input class="form-control" type="datetime-local" name="date_from" value="{{ filters.date_from }}">
           </div>
           <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">Received To</label>
+            <label class="form-label">????To</label>
             <input class="form-control" type="datetime-local" name="date_to" value="{{ filters.date_to }}">
           </div>
           <div class="col-12 d-flex gap-2">
-            <button class="btn btn-primary" type="submit">Search</button>
-            <a class="btn btn-outline-secondary" href="/records{% if selected_template %}?template_name={{ selected_template.template_name }}{% endif %}">Clear</a>
+            <button class="btn btn-primary" type="submit">??</button>
+            <a class="btn btn-outline-secondary" href="/records{% if selected_template %}?template_name={{ selected_template.template_name }}{% endif %}">???</a>
           </div>
         </form>
       </div>
@@ -56,19 +56,19 @@
     <div class="card shadow-sm border-0">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 class="h5 mb-0">Results{% if selected_template %} / {{ selected_template.template_name }}{% endif %}</h2>
-          <span class="badge text-bg-secondary">Total {{ total }}</span>
+          <h2 class="h5 mb-0">????{% if selected_template %} / {{ selected_template.template_name }}{% endif %}</h2>
+          <span class="badge text-bg-secondary">?? {{ total }} ?</span>
         </div>
         <div class="table-responsive">
           <table class="table table-striped table-hover align-middle">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Received At</th>
+                <th>????</th>
                 {% for field in fields if field.is_visible %}
                 <th>{{ field.display_name }}</th>
                 {% endfor %}
-                {% if external_api_enabled %}<th>External API</th>{% endif %}
+                {% if external_api_enabled %}<th>??API</th>{% endif %}
                 <th></th>
               </tr>
             </thead>
@@ -92,26 +92,26 @@
                   <form method="post" action="/records/{{ record.id }}/execute-external" class="d-flex gap-2">
                     <input type="hidden" name="template_name" value="{{ selected_template.template_name }}">
                     <input type="hidden" name="return_query" value="template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">
-                    <button class="btn btn-sm btn-outline-warning" type="submit">Run</button>
+                    <button class="btn btn-sm btn-outline-warning" type="submit">??</button>
                   </form>
                 </td>
                 {% endif %}
-                <td><a class="btn btn-sm btn-outline-primary" href="/records/{{ record.id }}?template_name={{ selected_template.template_name }}">Detail</a></td>
+                <td><a class="btn btn-sm btn-outline-primary" href="/records/{{ record.id }}?template_name={{ selected_template.template_name }}">??</a></td>
               </tr>
               {% else %}
-              <tr><td colspan="99" class="text-center text-muted py-4">No records found.</td></tr>
+              <tr><td colspan="99" class="text-center text-muted py-4">???????????????</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
         <div class="d-flex justify-content-between mt-3">
-          <div class="text-muted small">Page {{ page }}</div>
+          <div class="text-muted small">??? {{ page }}</div>
           <div class="d-flex gap-2">
             {% if has_prev %}
-            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page - 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">Prev</a>
+            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page - 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">??</a>
             {% endif %}
             {% if has_next %}
-            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page + 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">Next</a>
+            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page + 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">??</a>
             {% endif %}
           </div>
         </div>
@@ -131,7 +131,7 @@
       return value !== "off";
     }
     function updateButtonLabel() {
-      button.textContent = isEnabled() ? "Auto Refresh" : "Paused";
+      button.textContent = isEnabled() ? "????" : "?????";
     }
     button.addEventListener("click", function () {
       window.localStorage.setItem(storageKey, isEnabled() ? "off" : "on");

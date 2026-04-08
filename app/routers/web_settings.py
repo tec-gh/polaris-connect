@@ -1,9 +1,11 @@
 ﻿import json
+from json import JSONDecodeError
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.core.auth import require_admin
@@ -24,9 +26,13 @@ router = APIRouter(tags=["settings"])
 templates = Jinja2Templates(directory="app/templates")
 
 
-# Render the template management screen.
-@router.get("/settings/mappings")
-def mappings_page(request: Request, template_name: Optional[str] = None, db: Session = Depends(get_db), _: str = Depends(require_admin)):
+def render_mappings_page(
+    request: Request,
+    db: Session,
+    template_name: Optional[str] = None,
+    error_message: str = "",
+    success_message: str = "",
+):
     available_templates = list_templates(db)
     selected_template = get_selected_template(db, template_name)
     return templates.TemplateResponse(
@@ -38,24 +44,47 @@ def mappings_page(request: Request, template_name: Optional[str] = None, db: Ses
             "selected_template": selected_template,
             "fields": sorted(selected_template.fields, key=lambda item: (item.sort_order, item.id)) if selected_template else [],
             "sftp_settings": get_sftp_settings(db),
+            "error_message": error_message,
+            "success_message": success_message,
         },
+        status_code=400 if error_message else 200,
     )
 
 
-# Upload a template JSON file from the admin screen.
+@router.get("/settings/mappings")
+def mappings_page(request: Request, template_name: Optional[str] = None, db: Session = Depends(get_db), _: str = Depends(require_admin)):
+    return render_mappings_page(request, db, template_name=template_name)
+
+
 @router.post("/settings/templates/upload")
 async def upload_template(request: Request, db: Session = Depends(get_db), _: str = Depends(require_admin)):
     form = await request.form()
     upload = form.get("template_file")
+    current_template_name = str(form.get("template_name") or "").strip() or None
     if not isinstance(upload, UploadFile):
-        return RedirectResponse(url="/settings/mappings", status_code=303)
-    spec = load_template_spec(await upload.read())
-    template = upsert_template(db, dump_template_spec(spec))
-    db.commit()
-    return RedirectResponse(url=f"/settings/mappings?template_name={template.template_name}", status_code=303)
+        return render_mappings_page(request, db, template_name=current_template_name, error_message="??????JSON??????????????")
+
+    raw = await upload.read()
+    if not raw:
+        return render_mappings_page(request, db, template_name=current_template_name, error_message="??????JSON?????????????????????")
+
+    try:
+        spec = load_template_spec(raw)
+        template = upsert_template(db, dump_template_spec(spec))
+        db.commit()
+        return RedirectResponse(url=f"/settings/mappings?template_name={template.template_name}", status_code=303)
+    except JSONDecodeError as exc:
+        db.rollback()
+        return render_mappings_page(request, db, template_name=current_template_name, error_message=f"JSON??????????: {exc}")
+    except ValidationError as exc:
+        db.rollback()
+        details = "; ".join(error.get("msg", "????????") for error in exc.errors())
+        return render_mappings_page(request, db, template_name=current_template_name, error_message=f"??????????????????: {details}")
+    except Exception as exc:
+        db.rollback()
+        return render_mappings_page(request, db, template_name=current_template_name, error_message=f"????????????????: {exc}")
 
 
-# Save edited template settings from the admin screen.
 @router.post("/settings/mappings/save")
 async def save_mappings(request: Request, db: Session = Depends(get_db), username: str = Depends(require_admin)):
     form = await request.form()
@@ -96,8 +125,6 @@ async def save_mappings(request: Request, db: Session = Depends(get_db), usernam
     return RedirectResponse(url=f"/settings/mappings?template_name={updated.template_name}", status_code=303)
 
 
-# Delete the selected template from the admin screen.
-# Related fields and records are removed by cascade.
 @router.post("/settings/templates/delete")
 async def delete_template_route(request: Request, db: Session = Depends(get_db), _: str = Depends(require_admin)):
     form = await request.form()
@@ -115,7 +142,6 @@ async def delete_template_route(request: Request, db: Session = Depends(get_db),
     return RedirectResponse(url="/settings/mappings", status_code=303)
 
 
-# Resync normalized values from stored payloads.
 @router.post("/settings/mappings/resync")
 def run_resync(request: Request, db: Session = Depends(get_db), _: str = Depends(require_admin)):
     template_name = request.query_params.get("template_name")
@@ -127,7 +153,6 @@ def run_resync(request: Request, db: Session = Depends(get_db), _: str = Depends
     return RedirectResponse(url="/settings/mappings", status_code=303)
 
 
-# Save SFTP connection settings and target path.
 @router.post("/settings/sftp/save")
 async def save_sftp_settings_route(request: Request, db: Session = Depends(get_db), _: str = Depends(require_admin)):
     form = await request.form()
