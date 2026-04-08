@@ -122,6 +122,152 @@ python3.9 -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 - `ping_test_result` と `exec_result` は `overwrite`
 - その他の項目は `skip`
 
+
+## 外部からの JSON POST サンプル
+
+`sample_legacy_records` へレコードを登録する例です。
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: changeme" \
+  -d '{
+    "hostname": "sv-01",
+    "ipaddress": "192.168.0.10",
+    "area": "tokyo",
+    "building": "dc-a",
+    "category": "server",
+    "model": "rx-1000",
+    "ping_test_result": "success",
+    "exec_result": "ok"
+  }' \
+  http://127.0.0.1:8000/api/v1/records/sample_legacy_records
+```
+
+API キーを無効にしている環境では `X-API-Key` ヘッダは不要です。
+
+## `sample_legacy_records` のデータ構造
+
+`sample_legacy_records` は、旧固定構造の `records` テーブルをテンプレート方式に置き換えたサンプルです。
+
+### テンプレート定義の要点
+
+- `template_name`: `sample_legacy_records`
+- `api_name`: `sample_legacy_records`
+- `unique_key_field`: `hostname`
+- 項目数: 8
+
+### 項目定義一覧
+
+| field_key | display_name | json_path | update_mode |
+| --- | --- | --- | --- |
+| `hostname` | `Hostname` | `hostname` | `skip` |
+| `ipaddress` | `IP Address` | `ipaddress` | `skip` |
+| `area` | `Area` | `area` | `skip` |
+| `building` | `Building` | `building` | `skip` |
+| `category` | `Category` | `category` | `skip` |
+| `model` | `Model` | `model` | `skip` |
+| `ping_test_result` | `Ping Test Result` | `ping_test_result` | `overwrite` |
+| `exec_result` | `Exec Result` | `exec_result` | `overwrite` |
+
+### テンプレート JSON 例
+
+```json
+{
+  "template_name": "sample_legacy_records",
+  "api_name": "sample_legacy_records",
+  "unique_key_field": "hostname",
+  "external_api": {
+    "enabled": false,
+    "url": "",
+    "headers": {},
+    "body": {}
+  },
+  "fields": [
+    {
+      "field_key": "hostname",
+      "display_name": "Hostname",
+      "json_path": "hostname",
+      "is_visible": true,
+      "is_searchable": true,
+      "is_exportable": true,
+      "update_mode": "skip",
+      "sort_order": 1
+    },
+    {
+      "field_key": "ipaddress",
+      "display_name": "IP Address",
+      "json_path": "ipaddress",
+      "is_visible": true,
+      "is_searchable": true,
+      "is_exportable": true,
+      "update_mode": "skip",
+      "sort_order": 2
+    },
+    {
+      "field_key": "area",
+      "display_name": "Area",
+      "json_path": "area",
+      "is_visible": true,
+      "is_searchable": true,
+      "is_exportable": true,
+      "update_mode": "skip",
+      "sort_order": 3
+    },
+    {
+      "field_key": "building",
+      "display_name": "Building",
+      "json_path": "building",
+      "is_visible": true,
+      "is_searchable": true,
+      "is_exportable": true,
+      "update_mode": "skip",
+      "sort_order": 4
+    },
+    {
+      "field_key": "category",
+      "display_name": "Category",
+      "json_path": "category",
+      "is_visible": true,
+      "is_searchable": true,
+      "is_exportable": true,
+      "update_mode": "skip",
+      "sort_order": 5
+    },
+    {
+      "field_key": "model",
+      "display_name": "Model",
+      "json_path": "model",
+      "is_visible": true,
+      "is_searchable": true,
+      "is_exportable": true,
+      "update_mode": "skip",
+      "sort_order": 6
+    },
+    {
+      "field_key": "ping_test_result",
+      "display_name": "Ping Test Result",
+      "json_path": "ping_test_result",
+      "is_visible": true,
+      "is_searchable": true,
+      "is_exportable": true,
+      "update_mode": "overwrite",
+      "sort_order": 7
+    },
+    {
+      "field_key": "exec_result",
+      "display_name": "Exec Result",
+      "json_path": "exec_result",
+      "is_visible": true,
+      "is_searchable": true,
+      "is_exportable": true,
+      "update_mode": "overwrite",
+      "sort_order": 8
+    }
+  ]
+}
+```
+
 ## テンプレート削除
 
 設定画面 `/settings/mappings` では、選択中テンプレートを削除できます。
