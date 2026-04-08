@@ -1,0 +1,30 @@
+:root {
+  --app-bg: #f4f7fb;
+  --app-border: #d8e1ee;
+  --app-navbar: linear-gradient(135deg, #153b6b, #0f5f8c);
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(29, 123, 184, 0.12), transparent 28%),
+    linear-gradient(180deg, #f7faff 0%, var(--app-bg) 100%);
+  color: #233449;
+}
+
+.app-navbar {
+  background: var(--app-navbar);
+}
+
+.card {
+  border: 1px solid var(--app-border);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.json-view {
+  background: #0f172a;
+  color: #d6e3ff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  min-height: 24rem;
+  overflow: auto;
+}

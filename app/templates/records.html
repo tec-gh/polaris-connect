@@ -1,0 +1,146 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h1 class="h4 mb-1">Polaris Connect Records</h1>
+            <p class="text-muted mb-0">Switch templates to browse, search, export, and execute template-specific actions.</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" id="auto-refresh-toggle" type="button">Auto Refresh</button>
+            {% if selected_template %}
+            <a class="btn btn-outline-primary" download="{{ selected_template.api_name }}.csv" href="/api/v1/records/export.csv?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">Export CSV</a>
+            <a class="btn btn-primary" download="{{ selected_template.api_name }}.json" href="/api/v1/records/export.json?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">Export JSON</a>
+            {% endif %}
+          </div>
+        </div>
+        <form method="get" class="row g-3">
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">Template</label>
+            <select class="form-control" name="template_name" onchange="this.form.submit()">
+              {% for template in available_templates %}
+              <option value="{{ template.template_name }}" {% if selected_template and template.template_name == selected_template.template_name %}selected{% endif %}>{{ template.template_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% for field in fields if field.is_searchable %}
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">{{ field.display_name }}</label>
+            <input class="form-control" type="text" name="{{ field.field_key }}" value="{{ filters[field.field_key] }}">
+          </div>
+          {% endfor %}
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">Keyword</label>
+            <input class="form-control" type="text" name="keyword" value="{{ filters.keyword }}">
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">Received From</label>
+            <input class="form-control" type="datetime-local" name="date_from" value="{{ filters.date_from }}">
+          </div>
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">Received To</label>
+            <input class="form-control" type="datetime-local" name="date_to" value="{{ filters.date_to }}">
+          </div>
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Search</button>
+            <a class="btn btn-outline-secondary" href="/records{% if selected_template %}?template_name={{ selected_template.template_name }}{% endif %}">Clear</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 mb-0">Results{% if selected_template %} / {{ selected_template.template_name }}{% endif %}</h2>
+          <span class="badge text-bg-secondary">Total {{ total }}</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Received At</th>
+                {% for field in fields if field.is_visible %}
+                <th>{{ field.display_name }}</th>
+                {% endfor %}
+                {% if external_api_enabled %}<th>External API</th>{% endif %}
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in records %}
+              <tr>
+                <td>{{ record.id }}</td>
+                <td>{{ record.received_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+                {% for field in fields if field.is_visible %}
+                {% set value = record['values'].get(field.field_key, '') %}
+                <td>
+                  {% if field.field_key in ["ping_test_result", "exec_result"] %}
+                  <span class="badge rounded-pill {% if value and value|lower in ['success', 'ok', 'passed'] %}text-bg-success{% elif value %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ value or "-" }}</span>
+                  {% else %}
+                  {{ value or "-" }}
+                  {% endif %}
+                </td>
+                {% endfor %}
+                {% if external_api_enabled %}
+                <td>
+                  <form method="post" action="/records/{{ record.id }}/execute-external" class="d-flex gap-2">
+                    <input type="hidden" name="template_name" value="{{ selected_template.template_name }}">
+                    <input type="hidden" name="return_query" value="template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">
+                    <button class="btn btn-sm btn-outline-warning" type="submit">Run</button>
+                  </form>
+                </td>
+                {% endif %}
+                <td><a class="btn btn-sm btn-outline-primary" href="/records/{{ record.id }}?template_name={{ selected_template.template_name }}">Detail</a></td>
+              </tr>
+              {% else %}
+              <tr><td colspan="99" class="text-center text-muted py-4">No records found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between mt-3">
+          <div class="text-muted small">Page {{ page }}</div>
+          <div class="d-flex gap-2">
+            {% if has_prev %}
+            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page - 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">Prev</a>
+            {% endif %}
+            {% if has_next %}
+            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page + 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">Next</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  (function () {
+    const storageKey = "records-auto-refresh-enabled";
+    const button = document.getElementById("auto-refresh-toggle");
+    const refreshSeconds = {{ auto_refresh_seconds }};
+    const refreshUrl = {{ auto_refresh_url|tojson }};
+    if (!button) return;
+    function isEnabled() {
+      const value = window.localStorage.getItem(storageKey);
+      return value !== "off";
+    }
+    function updateButtonLabel() {
+      button.textContent = isEnabled() ? "Auto Refresh" : "Paused";
+    }
+    button.addEventListener("click", function () {
+      window.localStorage.setItem(storageKey, isEnabled() ? "off" : "on");
+      updateButtonLabel();
+    });
+    updateButtonLabel();
+    if (isEnabled()) {
+      window.setTimeout(function () { window.location.assign(refreshUrl); }, refreshSeconds * 1000);
+    }
+  })();
+</script>
+{% endblock %}

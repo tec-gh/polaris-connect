@@ -1,0 +1,39 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 d-flex justify-content-between align-items-center">
+    <div>
+      <h1 class="h4 mb-1">Polaris Connect Record Detail</h1>
+      <p class="text-muted mb-0">Detailed payload view for the selected template record.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/records?template_name={{ selected_template.template_name if selected_template else '' }}">Back</a>
+  </div>
+  {% if record and record_view %}
+  <div class="col-12 col-xl-5">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Summary</h2>
+        <dl class="row mb-0">
+          <dt class="col-12 col-md-6">ID</dt><dd class="col-12 col-md-6">{{ record.id }}</dd>
+          <dt class="col-12 col-md-6">Template</dt><dd class="col-12 col-md-6">{{ selected_template.template_name }}</dd>
+          <dt class="col-12 col-md-6">Received At</dt><dd class="col-12 col-md-6">{{ record.received_at.strftime("%Y-%m-%d %H:%M:%S") }}</dd>
+          {% for field in fields %}
+          <dt class="col-12 col-md-6">{{ field.display_name }}</dt><dd class="col-12 col-md-6">{{ record_view['values'].get(field.field_key, '-') or '-' }}</dd>
+          {% endfor %}
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-7">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Payload JSON</h2>
+        <pre class="json-view">{{ payload_pretty }}</pre>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12"><div class="alert alert-warning">Record not found.</div></div>
+  {% endif %}
+</div>
+{% endblock %}

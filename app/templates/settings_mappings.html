@@ -1,0 +1,125 @@
+﻿{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h1 class="h4 mb-1">Template Upload</h1>
+        <p class="text-muted mb-3">Upload a template JSON file to register or update a template.</p>
+        <form method="post" action="/settings/templates/upload" enctype="multipart/form-data" class="row g-3">
+          <div class="col-12 col-lg-6">
+            <label class="form-label">Template JSON</label>
+            <input class="form-control" type="file" name="template_file" accept="application/json">
+          </div>
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Upload</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <h1 class="h4 mb-1">SFTP Settings</h1>
+        <p class="text-muted mb-3">Export each template JSON through SFTP using the configured target path.</p>
+        <form method="post" action="/settings/sftp/save" class="row g-3">
+          <input type="hidden" name="template_name" value="{{ selected_template.template_name if selected_template else '' }}">
+          <div class="col-12 col-lg-6"><label class="form-label">SFTP Host</label><input class="form-control" type="text" name="sftp_host" value="{{ sftp_settings.sftp_host }}"></div>
+          <div class="col-12 col-lg-6"><label class="form-label">Username</label><input class="form-control" type="text" name="sftp_username" value="{{ sftp_settings.sftp_username }}"></div>
+          <div class="col-12 col-lg-6"><label class="form-label">Password</label><input class="form-control" type="password" name="sftp_password" value="{{ sftp_settings.sftp_password }}"></div>
+          <div class="col-12 col-lg-6"><label class="form-label">Frequency Minutes</label><input class="form-control" type="number" min="1" name="sftp_frequency_minutes" value="{{ sftp_settings.sftp_frequency_minutes }}"></div>
+          <div class="col-12"><label class="form-label">Remote Path</label><input class="form-control" type="text" name="sftp_remote_path" value="{{ sftp_settings.sftp_remote_path }}"></div>
+          <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit">Save SFTP Settings</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h1 class="h4 mb-1">Polaris Connect Template Editor</h1>
+            <p class="text-muted mb-0">Switch templates and edit field mappings, update policy, and external API settings.</p>
+          </div>
+          {% if selected_template %}
+          <form method="get" action="/settings/mappings" class="d-flex gap-2 align-items-center">
+            <label class="form-label mb-0">Template</label>
+            <select class="form-control" name="template_name" onchange="this.form.submit()">
+              {% for template in available_templates %}
+              <option value="{{ template.template_name }}" {% if template.template_name == selected_template.template_name %}selected{% endif %}>{{ template.template_name }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          {% endif %}
+        </div>
+        {% if selected_template %}
+        <form method="post" action="/settings/mappings/save">
+          <input type="hidden" name="template_name" value="{{ selected_template.template_name }}">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-4"><label class="form-label">Template Name</label><input class="form-control" type="text" name="template_name_value" value="{{ selected_template.template_name }}"></div>
+            <div class="col-12 col-lg-4"><label class="form-label">API Name</label><input class="form-control" type="text" name="api_name" value="{{ selected_template.api_name }}"></div>
+            <div class="col-12 col-lg-4"><label class="form-label">Unique Key Field</label><input class="form-control" type="text" name="unique_key_field" value="{{ selected_template.unique_key_field }}" readonly></div>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-3">
+              <label class="form-label">External API Enabled</label>
+              <div><input class="form-check-input" type="checkbox" name="external_api_enabled" {% if selected_template.external_api_enabled %}checked{% endif %}> Enable manual execution</div>
+            </div>
+            <div class="col-12 col-lg-9"><label class="form-label">External API URL</label><input class="form-control" type="text" name="external_api_url" value="{{ selected_template.external_api_url }}"></div>
+            <div class="col-12 col-lg-6"><label class="form-label">External API Headers JSON</label><textarea class="form-control" name="external_api_headers_json" rows="5">{{ selected_template.external_api_headers_json }}</textarea></div>
+            <div class="col-12 col-lg-6"><label class="form-label">External API Body JSON</label><textarea class="form-control" name="external_api_body_json" rows="5">{{ selected_template.external_api_body_json }}</textarea><div class="text-muted small mt-1">Use placeholders such as <code>{% raw %}{{hostname}}{% endraw %}</code> and <code>{% raw %}{{payload_json}}{% endraw %}</code>.</div></div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-striped align-middle">
+              <thead>
+                <tr>
+                  <th>Field Key</th>
+                  <th>Display Name</th>
+                  <th>JSON Path</th>
+                  <th>Visible</th>
+                  <th>Searchable</th>
+                  <th>Exportable</th>
+                  <th>Overwrite</th>
+                  <th>Sort Order</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in fields %}
+                <tr>
+                  <td class="fw-semibold">{{ item.field_key }}</td>
+                  <td><input class="form-control" type="text" name="display_name_{{ item.field_key }}" value="{{ item.display_name }}"></td>
+                  <td><input class="form-control" type="text" name="json_path_{{ item.field_key }}" value="{{ item.json_path }}"></td>
+                  <td><input class="form-check-input" type="checkbox" name="is_visible_{{ item.field_key }}" {% if item.is_visible %}checked{% endif %}></td>
+                  <td><input class="form-check-input" type="checkbox" name="is_searchable_{{ item.field_key }}" {% if item.is_searchable %}checked{% endif %}></td>
+                  <td><input class="form-check-input" type="checkbox" name="is_exportable_{{ item.field_key }}" {% if item.is_exportable %}checked{% endif %}></td>
+                  <td><input class="form-check-input" type="checkbox" name="update_mode_{{ item.field_key }}" {% if item.update_mode == 'overwrite' %}checked{% endif %}></td>
+                  <td><input class="form-control" type="number" name="sort_order_{{ item.field_key }}" value="{{ item.sort_order }}"></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="col-12 d-flex gap-2 mt-3">
+            <button class="btn btn-primary" type="submit">Save</button>
+            <a class="btn btn-outline-secondary" href="/records?template_name={{ selected_template.template_name }}">Back to Records</a>
+          </div>
+        </form>
+        <form method="post" action="/settings/templates/delete" class="mt-3" onsubmit="return window.confirm('Delete the selected template and all related records?');">
+          <input type="hidden" name="template_name" value="{{ selected_template.template_name }}">
+          <button class="btn btn-outline-danger" type="submit">Delete Template</button>
+        </form>
+        <form method="post" action="/settings/mappings/resync?template_name={{ selected_template.template_name }}" class="mt-3">
+          <button class="btn btn-outline-warning" type="submit">Resync Existing Records</button>
+        </form>
+        {% else %}
+        <div class="alert alert-warning">No templates found. Upload a template JSON file first.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
