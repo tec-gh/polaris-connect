@@ -63,7 +63,7 @@ def _filter_exists(field_key: str, value: str):
 def build_record_filters(template_id: int, filters: dict) -> list:
     conditions = [TemplateRecord.template_id == template_id]
     for field_key, value in filters.items():
-        if field_key in {"keyword", "date_from", "date_to", "template_name"}:
+        if field_key in {"keyword", "date_from", "date_to", "template_name", "field_values"}:
             continue
         if value:
             conditions.append(_filter_exists(field_key, value))

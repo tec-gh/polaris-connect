@@ -1,0 +1,10 @@
+{
+  "hostname": "sample-legacy-09",
+  "ipaddress": "192.168.10.9",
+  "area": "sendai",
+  "building": "branch-1",
+  "category": "firewall",
+  "model": "fw-900",
+  "ping_test_result": "failed",
+  "exec_result": "ng"
+}

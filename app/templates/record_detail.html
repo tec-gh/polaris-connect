@@ -1,39 +1,46 @@
-﻿{% extends "base.html" %}
-{% block content %}
-<div class="row g-4">
-  <div class="col-12 d-flex justify-content-between align-items-center">
-    <div>
-      <h1 class="h4 mb-1">Polaris Connect ??????</h1>
-      <p class="text-muted mb-0">??????????????? payload ?????????</p>
-    </div>
-    <a class="btn btn-outline-secondary" href="/records?template_name={{ selected_template.template_name if selected_template else '' }}">??</a>
-  </div>
-  {% if record and record_view %}
-  <div class="col-12 col-xl-5">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-body">
-        <h2 class="h5 mb-3">??</h2>
-        <dl class="row mb-0">
-          <dt class="col-12 col-md-6">ID</dt><dd class="col-12 col-md-6">{{ record.id }}</dd>
-          <dt class="col-12 col-md-6">??????</dt><dd class="col-12 col-md-6">{{ selected_template.template_name }}</dd>
-          <dt class="col-12 col-md-6">????</dt><dd class="col-12 col-md-6">{{ record.received_at.strftime("%Y-%m-%d %H:%M:%S") }}</dd>
-          {% for field in fields %}
-          <dt class="col-12 col-md-6">{{ field.display_name }}</dt><dd class="col-12 col-md-6">{{ record_view['values'].get(field.field_key, '-') or '-' }}</dd>
-          {% endfor %}
-        </dl>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-xl-7">
-    <div class="card shadow-sm border-0 h-100">
-      <div class="card-body">
-        <h2 class="h5 mb-3">Raw Payload</h2>
-        <pre class="small mb-0">{{ record_view['payload_json_pretty'] }}</pre>
-      </div>
-    </div>
-  </div>
-  {% else %}
-  <div class="col-12"><div class="alert alert-warning">?????????????</div></div>
-  {% endif %}
-</div>
-{% endblock %}
+﻿{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+
+  <div class="col-12 d-flex justify-content-between align-items-center">
+    <div>
+      <h1 class="h4 mb-1">Polaris Connect レコード詳細</h1>
+      <p class="text-muted mb-0">選択したテンプレートレコードの payload を詳細表示します。</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/records?template_name={{ selected_template.template_name if selected_template else '' }}">戻る</a>
+  </div>
+
+  {% if record and record_view %}
+
+  <div class="col-12 col-xl-5">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h5 mb-3">概要</h2>
+        <dl class="row mb-0">
+          <dt class="col-12 col-md-6">ID</dt><dd class="col-12 col-md-6">{{ record.id }}</dd>
+          <dt class="col-12 col-md-6">テンプレート</dt><dd class="col-12 col-md-6">{{ selected_template.template_name }}</dd>
+          <dt class="col-12 col-md-6">受信日時</dt><dd class="col-12 col-md-6">{{ record.received_at.strftime("%Y-%m-%d %H:%M:%S") }}</dd>
+          {% for field in fields %}
+          <dt class="col-12 col-md-6">{{ field.display_name }}</dt><dd class="col-12 col-md-6">{{ record_view['values'].get(field.field_key, '-') or '-' }}</dd>
+          {% endfor %}
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-7">
+    <div class="card shadow-sm border-0 h-100">
+      <div class="card-body">
+        <h2 class="h5 mb-3">Raw Payload</h2>
+        <pre class="small mb-0">{{ record_view['payload_json_pretty'] }}</pre>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+
+  <div class="col-12"><div class="alert alert-warning">レコードが見つかりません。</div></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{
+  "hostname": "sample-legacy-07",
+  "ipaddress": "192.168.10.7",
+  "area": "osaka",
+  "building": "dc-b",
+  "category": "router",
+  "model": "rt-200",
+  "ping_test_result": "success",
+  "exec_result": "ok"
+}

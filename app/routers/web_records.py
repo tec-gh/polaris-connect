@@ -1,4 +1,4 @@
-import json
+﻿import json
 from datetime import datetime
 from typing import Optional
 from urllib.parse import urlencode
@@ -20,8 +20,12 @@ templates = Jinja2Templates(directory="app/templates")
 
 def build_filters(request: Request, template) -> dict:
     values = {"template_name": template.template_name, "keyword": request.query_params.get("keyword") or None}
+    field_values = {}
     for field in template.fields:
-        values[field.field_key] = request.query_params.get(field.field_key) or None
+        field_value = request.query_params.get(f"field__{field.field_key}") or None
+        values[field.field_key] = field_value
+        field_values[field.field_key] = field_value or ""
+    values["field_values"] = field_values
     for field in ["date_from", "date_to"]:
         raw = request.query_params.get(field)
         values[field] = datetime.fromisoformat(raw) if raw else None
@@ -58,8 +62,10 @@ def records_page(
     fields, _ = get_template_mapping_config(selected_template)
     filters = build_filters(request, selected_template)
     records, total = search_records(db, selected_template, filters, page, page_size)
-    display_filters = {}
+    display_filters = {"field_values": filters.get("field_values", {})}
     for key, value in filters.items():
+        if key == "field_values":
+            continue
         if isinstance(value, datetime):
             display_filters[key] = value.strftime("%Y-%m-%dT%H:%M")
         else:

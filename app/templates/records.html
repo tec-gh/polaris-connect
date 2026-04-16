@@ -1,162 +1,198 @@
-﻿{% extends "base.html" %}
-{% block content %}
-<div class="row g-4">
-  <div class="col-12">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h1 class="h4 mb-1">Polaris Connect ??????</h1>
-            <p class="text-muted mb-0">????????????????????? API ????????</p>
-          </div>
-          <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary" id="auto-refresh-toggle" type="button">????</button>
-            {% if selected_template %}
-            <a class="btn btn-outline-primary" download="{{ selected_template.api_name }}.csv" href="/api/v1/records/export.csv?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">CSV??</a>
-            <a class="btn btn-primary" download="{{ selected_template.api_name }}.json" href="/api/v1/records/export.json?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">JSON??</a>
-            {% endif %}
-          </div>
-        </div>
-        <form method="get" class="row g-3">
-          <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">??????</label>
-            <select class="form-control" name="template_name" onchange="this.form.submit()">
-              {% for template in available_templates %}
-              <option value="{{ template.template_name }}" {% if selected_template and template.template_name == selected_template.template_name %}selected{% endif %}>{{ template.template_name }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          {% for field in fields if field.is_searchable %}
-          <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">{{ field.display_name }}</label>
-            <input class="form-control" type="text" name="field__{{ field.field_key }}" value="{{ filters.field_values.get(field.field_key, '') }}">
-          </div>
-          {% endfor %}
-          <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">?????</label>
-            <input class="form-control" type="text" name="keyword" value="{{ filters.keyword }}">
-          </div>
-          <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">????From</label>
-            <input class="form-control" type="datetime-local" name="date_from" value="{{ filters.date_from }}">
-          </div>
-          <div class="col-12 col-md-6 col-xl-3">
-            <label class="form-label">????To</label>
-            <input class="form-control" type="datetime-local" name="date_to" value="{{ filters.date_to }}">
-          </div>
-          <div class="col-12 d-flex gap-2">
-            <button class="btn btn-primary" type="submit">??</button>
-            <a class="btn btn-outline-secondary" href="/records{% if selected_template %}?template_name={{ selected_template.template_name }}{% endif %}">???</a>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12">
-    <div class="card shadow-sm border-0">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 class="h5 mb-0">????{% if selected_template %} / {{ selected_template.template_name }}{% endif %}</h2>
-          <span class="badge text-bg-secondary">?? {{ total }} ?</span>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-striped table-hover align-middle">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>????</th>
-                {% for field in fields if field.is_visible %}
-                <th>{{ field.display_name }}</th>
-                {% endfor %}
-                {% if external_api_enabled %}<th>??API</th>{% endif %}
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for record in records %}
-              <tr>
-                <td>{{ record.id }}</td>
-                <td>{{ record.received_at.strftime("%Y-%m-%d %H:%M:%S") if record.received_at else '-' }}</td>
-                {% for field in fields if field.is_visible %}
-                {% set value = record.values_map.get(field.field_key, '') %}
-                <td>
-                  {% if field.field_key == 'ping_test_result' and value %}
-                    {% if value|string|lower in ['ng', 'false', 'failed', 'error'] %}
-                    <span class="badge text-bg-danger">{{ value }}</span>
-                    {% else %}
-                    <span class="badge text-bg-success">{{ value }}</span>
-                    {% endif %}
-                  {% elif field.field_key == 'exec_result' and value %}
-                    {% if value|string|lower in ['ng', 'false', 'failed', 'error'] %}
-                    <span class="badge text-bg-danger">{{ value }}</span>
-                    {% else %}
-                    <span class="badge text-bg-success">{{ value }}</span>
-                    {% endif %}
-                  {% else %}
-                    {{ value or '-' }}
-                  {% endif %}
-                </td>
-                {% endfor %}
-                {% if external_api_enabled %}
-                <td>
-                  <form method="post" action="/records/{{ record.id }}/execute-external" class="d-flex gap-2">
-                    <input type="hidden" name="template_name" value="{{ selected_template.template_name }}">
-                    <input type="hidden" name="return_query" value="template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">
-                    <button class="btn btn-sm btn-outline-warning" type="submit">??</button>
-                  </form>
-                </td>
-                {% endif %}
-                <td><a class="btn btn-sm btn-outline-primary" href="/records/{{ record.id }}?template_name={{ selected_template.template_name }}">??</a></td>
-              </tr>
-              {% else %}
-              <tr><td colspan="99" class="text-center text-muted py-4">???????????????</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <div class="d-flex justify-content-between mt-3">
-          <div class="text-muted small">??? {{ page }}</div>
-          <div class="d-flex gap-2">
-            {% if has_prev %}
-            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page - 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">??</a>
-            {% endif %}
-            {% if has_next %}
-            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page + 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">??</a>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-  (function () {
-    const storageKey = "polaris-connect-auto-refresh";
-    const button = document.getElementById("auto-refresh-toggle");
-    if (!button) {
-      return;
-    }
-    function isEnabled() {
-      const value = window.localStorage.getItem(storageKey);
-      if (value === null) {
-        return true;
-      }
-      return value !== "off";
-    }
-    function updateButtonLabel() {
-      button.textContent = isEnabled() ? "????" : "?????";
-    }
-    button.addEventListener("click", function () {
-      window.localStorage.setItem(storageKey, isEnabled() ? "off" : "on");
-      updateButtonLabel();
-    });
-    updateButtonLabel();
-    if (isEnabled()) {
-      window.setTimeout(function () {
-        window.location.reload();
-      }, 30000);
-    }
-  })();
-</script>
-{% endblock %}
+﻿{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4">
+
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <h1 class="h4 mb-1">Polaris Connect レコード一覧</h1>
+            <p class="text-muted mb-0">テンプレートを切り替えて、検索、出力、外部 API 実行を行えます。</p>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary" id="auto-refresh-toggle" type="button">自動更新</button>
+            {% if selected_template %}
+            <a class="btn btn-outline-primary" download="{{ selected_template.api_name }}.csv" href="/api/v1/records/export.csv?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">CSV出力</a>
+            <a class="btn btn-primary" download="{{ selected_template.api_name }}.json" href="/api/v1/records/export.json?template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">JSON出力</a>
+            {% endif %}
+          </div>
+        </div>
+
+        <form method="get" class="row g-3">
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">テンプレート</label>
+            <select class="form-control" name="template_name" onchange="this.form.submit()">
+              {% for template in available_templates %}
+              <option value="{{ template.template_name }}" {% if selected_template and template.template_name == selected_template.template_name %}selected{% endif %}>{{ template.template_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% for field in fields if field.is_searchable %}
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">{{ field.display_name }}</label>
+            <input class="form-control" type="text" name="field__{{ field.field_key }}" value="{{ filters.field_values.get(field.field_key, '') }}">
+          </div>
+          {% endfor %}
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">キーワード</label>
+            <input class="form-control" type="text" name="keyword" value="{{ filters.keyword }}">
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">受信日時From</label>
+            <input class="form-control" type="datetime-local" name="date_from" value="{{ filters.date_from }}">
+          </div>
+
+          <div class="col-12 col-md-6 col-xl-3">
+            <label class="form-label">受信日時To</label>
+            <input class="form-control" type="datetime-local" name="date_to" value="{{ filters.date_to }}">
+          </div>
+
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary" type="submit">検索</button>
+            <a class="btn btn-outline-secondary" href="/records{% if selected_template %}?template_name={{ selected_template.template_name }}{% endif %}">クリア</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card shadow-sm border-0">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 mb-0">検索結果{% if selected_template %} / {{ selected_template.template_name }}{% endif %}</h2>
+          <span class="badge text-bg-secondary">合計 {{ total }} 件</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>受信日時</th>
+                {% for field in fields if field.is_visible %}
+                <th>{{ field.display_name }}</th>
+                {% endfor %}
+                {% if external_api_enabled %}<th>外部API</th>{% endif %}
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in records %}
+              <tr>
+                <td>{{ record.id }}</td>
+                <td>{{ record.received_at.strftime("%Y-%m-%d %H:%M:%S") if record.received_at else '-' }}</td>
+                {% for field in fields if field.is_visible %}
+                {% set value = record["values"].get(field.field_key, '') %}
+                <td>
+                  {% if field.field_key == 'ping_test_result' and value %}
+                    {% if value|string|lower in ['ng', 'false', 'failed', 'error'] %}
+                    <span class="badge text-bg-danger">{{ value }}</span>
+
+                    {% else %}
+                    <span class="badge text-bg-success">{{ value }}</span>
+                    {% endif %}
+                  {% elif field.field_key == 'exec_result' and value %}
+                    {% if value|string|lower in ['ng', 'false', 'failed', 'error'] %}
+                    <span class="badge text-bg-danger">{{ value }}</span>
+
+                    {% else %}
+                    <span class="badge text-bg-success">{{ value }}</span>
+                    {% endif %}
+
+                  {% else %}
+                    {{ value or '-' }}
+                  {% endif %}
+                </td>
+                {% endfor %}
+                {% if external_api_enabled %}
+                <td>
+
+                  <form method="post" action="/records/{{ record.id }}/execute-external" class="d-flex gap-2">
+                    <input type="hidden" name="template_name" value="{{ selected_template.template_name }}">
+                    <input type="hidden" name="return_query" value="template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">
+                    <button class="btn btn-sm btn-outline-warning" type="submit">実行</button>
+                  </form>
+                </td>
+                {% endif %}
+                <td><a class="btn btn-sm btn-outline-primary" href="/records/{{ record.id }}?template_name={{ selected_template.template_name }}">詳細</a></td>
+              </tr>
+
+              {% else %}
+              <tr><td colspan="99" class="text-center text-muted py-4">該当するレコードはありません。</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex justify-content-between mt-3">
+          <div class="text-muted small">ページ {{ page }}</div>
+          <div class="d-flex gap-2">
+            {% if has_prev %}
+            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page - 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">前へ</a>
+            {% endif %}
+            {% if has_next %}
+            <a class="btn btn-outline-secondary btn-sm" href="?page={{ page + 1 }}&page_size={{ page_size }}&template_name={{ selected_template.template_name }}{% if query_without_paging %}&{{ query_without_paging }}{% endif %}">次へ</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const storageKey = "polaris-connect-auto-refresh";
+    const button = document.getElementById("auto-refresh-toggle");
+    let refreshTimer = null;
+
+    if (!button) {
+      return;
+    }
+
+    function isEnabled() {
+      const value = window.localStorage.getItem(storageKey);
+      if (value === null) {
+        return true;
+      }
+      return value !== "off";
+    }
+
+    function updateButtonLabel() {
+      const enabled = isEnabled();
+      button.textContent = enabled ? "自動更新" : "更新停止中";
+      button.classList.toggle("btn-primary", enabled);
+      button.classList.toggle("btn-outline-primary", enabled);
+      button.classList.toggle("btn-outline-secondary", !enabled);
+      button.classList.toggle("app-auto-refresh-active", enabled);
+      button.classList.toggle("app-auto-refresh-paused", !enabled);
+    }
+
+    function resetRefreshTimer() {
+      if (refreshTimer !== null) {
+        window.clearTimeout(refreshTimer);
+        refreshTimer = null;
+      }
+      if (isEnabled()) {
+        refreshTimer = window.setTimeout(function () {
+          window.location.reload();
+        }, 30000);
+      }
+    }
+
+    button.addEventListener("click", function () {
+      window.localStorage.setItem(storageKey, isEnabled() ? "off" : "on");
+      updateButtonLabel();
+      resetRefreshTimer();
+    });
+
+    updateButtonLabel();
+    resetRefreshTimer();
+  })();
+</script>
+{% endblock %}

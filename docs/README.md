@@ -288,3 +288,174 @@ API キーを無効にしている環境では `X-API-Key` ヘッダは不要で
 - 詳細導入手順: [deployment.md](/d:/project/polaris_connect/docs/deployment.md)
 - 設計書: [design.md](/d:/project/polaris_connect/docs/design.md)
 - 構成情報: [current_structure.md](/d:/project/polaris_connect/docs/current_structure.md)
+
+## WSL2 での起動手順
+
+Windows 端末上の WSL2 で `Polaris Connect` を動かす場合の手順です。
+
+### 1. PowerShell を開く
+
+- スタートメニューから `PowerShell` を起動します。
+- `Windows PowerShell` / `PowerShell 7` のどちらでも構いません。
+
+### 2. WSL2 を起動する
+
+PowerShell で以下を実行します。
+
+```powershell
+wsl
+```
+
+### 3. プロジェクトフォルダへ移動する
+
+WSL 上で以下を実行します。
+
+```bash
+cd /mnt/d/project/polaris_connect
+```
+
+### 4. Python 実行環境を確認する
+
+```bash
+python3 --version
+```
+
+### 5. 必要なパッケージを導入する
+
+初回のみ実行します。
+
+```bash
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip
+```
+
+### 6. 仮想環境を作成する
+
+初回のみ実行します。
+
+```bash
+python3 -m venv .venv
+```
+
+### 7. 仮想環境を有効化する
+
+```bash
+source .venv/bin/activate
+```
+
+### 8. 依存ライブラリを導入する
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+### 9. データベースを初期化する
+
+```bash
+python scripts/init_db.py
+```
+
+### 10. アプリケーションを起動する
+
+```bash
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+### 11. Windows 側のブラウザでアクセスする
+
+- `http://localhost:8000`
+- `http://localhost:8000/records`
+- `http://localhost:8000/settings/mappings`
+- `http://localhost:8000/health`
+
+### 12. 停止する
+
+WSL 上で `Ctrl + C` を押します。
+
+### 次回以降の起動手順
+
+```powershell
+wsl
+```
+
+```bash
+cd /mnt/d/project/polaris_connect
+source .venv/bin/activate
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+## 外部API連携のローカル確認
+
+外部 API 連携を実サービスへ接続する前に、手元のモック API で安全に確認できます。
+
+### 1. モック API を起動する
+
+WSL 上で `Polaris Connect` の仮想環境を有効化し、次を実行します。
+
+```bash
+source .venv/bin/activate
+python scripts/mock_external_api.py --host 127.0.0.1 --port 9000 --path /mock
+```
+
+このコマンドで、以下の URL へ POST を受け付けます。
+
+```text
+http://127.0.0.1:9000/mock
+```
+
+受信した内容は、次のファイルへ保存されます。
+
+```text
+data/mock_external_api_last_request.json
+```
+
+### 2. 設定画面で外部 API を設定する
+
+管理画面 `/settings/mappings` で対象テンプレートを選択し、以下を設定します。
+
+- `外部 API 有効化`: ON
+- `外部 API URL`: `http://127.0.0.1:9000/mock`
+- `外部 API ヘッダ JSON`: 必要に応じて設定
+- `外部 API ボディ JSON`: 送信する JSON を設定
+
+`外部 API ヘッダ JSON` の記入例:
+
+```json
+{
+  "X-Test-Header": "polaris-connect",
+  "X-Template-Name": "sample_api_test"
+}
+```
+
+`外部 API ボディ JSON` の記入例:
+
+```json
+{
+  "hostname": "{{hostname}}",
+  "payload": "{{payload_json}}"
+}
+```
+
+### 3. 一覧画面から実行する
+
+`/records?template_name=<template_name>` を開き、対象レコードの `実行` ボタンを押します。
+
+### 4. モック API の受信結果を確認する
+
+モック API が受信に成功すると、`data/mock_external_api_last_request.json` に内容が保存されます。
+
+確認ポイント:
+
+- `hostname` が期待どおりに置換されているか
+- `{{payload_json}}` に元の JSON が入っているか
+- 設定したヘッダが送信されているか
+- Polaris Connect 側の実行結果が成功になっているか
+
+### 5. 失敗系も確認する
+
+モック API を `500` 応答で起動すると、失敗時の動作も確認できます。
+
+```bash
+python scripts/mock_external_api.py --host 127.0.0.1 --port 9000 --path /mock --status 500
+```
